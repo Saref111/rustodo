@@ -1,4 +1,8 @@
 use clap::{Parser, Subcommand};
+use db::{add_todo, get_todos, init_db, remove_todo};
+use rusqlite::Result as DBResult;
+
+mod db;
 
 struct Todo {
     id: u32,
@@ -8,7 +12,7 @@ struct Todo {
 #[derive(Parser)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -17,17 +21,23 @@ enum Commands {
     Remove { id: u32 },
 }
 
-fn main() {
-    let mut todos = vec![Todo { id : 1, content: String::from("To do Todo List")}];
+fn main() -> DBResult<()> {
+    let conn = init_db()?;
 
     let args = Cli::parse();
 
-    match args.command {
-        Commands::Add { content } => todos.push(Todo {content, id: todos.len() as u32 + 1}),
-        Commands::Remove { id } => todos = todos.into_iter().filter(|it| it.id == id).collect(),
-    }
+    if let Some(command) = args.command {
+        match command {
+            Commands::Add { content } => add_todo(&conn, content)?,
+            Commands::Remove { id } => remove_todo(&conn, id)?,
+        }
+    } 
+
+    let todos = get_todos(&conn)?;
 
     for todo in todos {
         println!("{}: {}", todo.id, todo.content);
     }
+
+    Ok(())
 }
