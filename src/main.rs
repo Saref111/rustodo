@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use clap::{Parser, Subcommand};
-use db::{add_todo, done_todo, get_todos, init_db, remove_todo};
+use db::{add_todo, done_todo, get_todos, init_db, remove_todo, update_todo};
 use rusqlite::Result as DBResult;
 
 mod db;
@@ -23,7 +23,8 @@ enum Commands {
     Add { content: String },
     Remove { id: u32 },
     Done { id: u32 },
-    Sort
+    Sort,
+    Update { id: u32, updated_content: String },
 }
 
 fn main() -> DBResult<()> {
@@ -37,9 +38,8 @@ fn main() -> DBResult<()> {
             Commands::Add { content } => add_todo(&conn, content)?,
             Commands::Remove { id } => remove_todo(&conn, id)?,
             Commands::Done { id } => done_todo(&conn, id)?,
-            Commands::Sort => {
-                sort_by_done = true
-            }
+            Commands::Sort => sort_by_done = true,
+            Commands::Update { id, updated_content } => update_todo(&conn, id, &updated_content)?
         }
     }
 

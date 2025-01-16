@@ -48,6 +48,11 @@ pub fn init_db() -> DBResult<Connection> {
 }
 
 pub fn done_todo(conn: &Connection, id: u32) -> DBResult<()> {
-    conn.execute("UPDATE todo SET done=true WHERE id=?1", params![id])?;
+    conn.execute("UPDATE todo SET done=1 WHERE id=?1", params![id])?;
+    Ok(())
+}
+
+pub fn update_todo(conn: &Connection, id: u32, updated_content: &str) -> DBResult<()> {
+    conn.execute("UPDATE todo SET content=?1 WHERE id=?2", params![updated_content, id])?;
     Ok(())
 }
