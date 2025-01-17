@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 use clap::{Parser, Subcommand};
 use db::{add_todo, done_todo, get_todos, init_db, remove_todo, update_todo};
+use dialoguer::Input;
 use rusqlite::Result as DBResult;
 
 mod db;
@@ -20,11 +21,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Add { content: String },
+    Add { content: Option<String> },
     Remove { id: u32 },
     Done { id: u32 },
     Sort,
-    Update { id: u32, updated_content: String },
+    Update { id: u32, updated_content: Option<String> },
 }
 
 fn main() -> DBResult<()> {
@@ -35,11 +36,17 @@ fn main() -> DBResult<()> {
 
     if let Some(command) = args.command {
         match command {
-            Commands::Add { content } => add_todo(&conn, content)?,
+            Commands::Add { content } =>{ 
+                let content = content.unwrap_or_else(prompt_for_title);
+                add_todo(&conn, content)?
+            },
             Commands::Remove { id } => remove_todo(&conn, id)?,
             Commands::Done { id } => done_todo(&conn, id)?,
             Commands::Sort => sort_by_done = true,
-            Commands::Update { id, updated_content } => update_todo(&conn, id, &updated_content)?
+            Commands::Update { id, updated_content } => {
+                let updated_content = updated_content.unwrap_or_else(prompt_for_title);
+                update_todo(&conn, id, &updated_content)?
+            }
         }
     }
 
@@ -67,4 +74,11 @@ fn main() -> DBResult<()> {
     }
 
     Ok(())
+}
+
+fn prompt_for_title() -> String {
+    Input::new()
+        .with_prompt("Enter the todo title")
+        .interact_text()
+        .unwrap()
 }
