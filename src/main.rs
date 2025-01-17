@@ -2,10 +2,11 @@ use std::cmp::Ordering;
 
 use clap::{Parser, Subcommand};
 use db::{add_todo, done_todo, get_todos, init_db, remove_todo, update_todo};
-use dialoguer::Input;
+use prompts::{prompt_for_id, prompt_for_title};
 use rusqlite::Result as DBResult;
 
 mod db;
+mod prompts;
 
 struct Todo {
     id: u32,
@@ -22,10 +23,10 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Add { content: Option<String> },
-    Remove { id: u32 },
-    Done { id: u32 },
+    Remove { id: Option<u32> },
+    Done { id: Option<u32> },
     Sort,
-    Update { id: u32, updated_content: Option<String> },
+    Update { id: Option<u32>, updated_content: Option<String> },
 }
 
 fn main() -> DBResult<()> {
@@ -40,10 +41,17 @@ fn main() -> DBResult<()> {
                 let content = content.unwrap_or_else(prompt_for_title);
                 add_todo(&conn, content)?
             },
-            Commands::Remove { id } => remove_todo(&conn, id)?,
-            Commands::Done { id } => done_todo(&conn, id)?,
+            Commands::Remove { id } => {
+                let id = id.unwrap_or_else(prompt_for_id);
+                remove_todo(&conn, id)?
+            },
+            Commands::Done { id } => {
+                let id = id.unwrap_or_else(prompt_for_id);
+                done_todo(&conn, id)?
+            },
             Commands::Sort => sort_by_done = true,
             Commands::Update { id, updated_content } => {
+                let id = id.unwrap_or_else(prompt_for_id);
                 let updated_content = updated_content.unwrap_or_else(prompt_for_title);
                 update_todo(&conn, id, &updated_content)?
             }
@@ -76,9 +84,3 @@ fn main() -> DBResult<()> {
     Ok(())
 }
 
-fn prompt_for_title() -> String {
-    Input::new()
-        .with_prompt("Enter the todo title")
-        .interact_text()
-        .unwrap()
-}
